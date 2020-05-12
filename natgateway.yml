@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Natgateway for private subnets
+
+Parameters:
+
+  ParentStack:
+    Description: Parent stack name
+    Type: String
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+  AppName:
+    Description: Application name
+    Type: String
+  
+Resources:
+
+  # Elastic Ip
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    Properties: 
+      Domain: 
+        Fn::ImportValue:
+          !Sub ${AppName}-${ParentStack}-VPC
+      Tags: 
+        - Key: Name
+          Value: !Sub ${AppName}-Nat-Gateway-EIP
+
+  # Nat Gateway
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticIp.AllocationId 
+      SubnetId: 
+        Fn::ImportValue:
+          !Sub ${AppName}-${ParentStack}-Public-Subnet-1
+      Tags:
+        - Key: Name
+          Value: !Sub ${AppName}-Nat-Gateway
+  
+  # Route external traffic through the Nat
+  NatRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: 
+        Fn::ImportValue:
+          !Sub ${AppName}-${ParentStack}-Private-RT
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
