@@ -193,7 +193,7 @@ Resources:
   PublicTierSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: PublicTierSecurityGroup
+      GroupName: !Sub ${AppName}-PublicTierSecurityGroup
       GroupDescription: Public tier security group
       VpcId: !Ref Vpc
       SecurityGroupIngress:
@@ -212,7 +212,7 @@ Resources:
   PrivateTierSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: PrivateTierSecurityGroup
+      GroupName: !Sub ${AppName}-PrivateTierSecurityGroup
       GroupDescription: Private tier security group
       VpcId: !Ref Vpc
       Tags:
@@ -249,9 +249,17 @@ Outputs:
     Export: 
       Name: !Sub ${AppName}-${ParentStack}-Public-Subnet-1
   PublicSubnet2:
-    Value: !Ref PublicSubnet1
+    Value: !Ref PublicSubnet2
     Export: 
       Name: !Sub ${AppName}-${ParentStack}-Public-Subnet-2
+  PrivateSubnet1:
+    Value: !Ref PrivateSubnet1
+    Export: 
+      Name: !Sub ${AppName}-${ParentStack}-Private-Subnet-1
+  PrivateSubnet2:
+    Value: !Ref PrivateSubnet2
+    Export: 
+      Name: !Sub ${AppName}-${ParentStack}-Private-Subnet-2
   PrivateRouteTable: # For gateway routing later
     Value: !Ref PrivateRouteTable
     Export: 

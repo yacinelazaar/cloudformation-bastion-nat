@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  EC2 autoscaling group 
+
+Parameters:
+  ParentStack:
+    Description: Parent stack name
+    Type: String
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+  AppName:
+    Description: Application name
+    Type: String
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+    Type: String
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedPattern: "[\\x20-\\x7E]*"
+    ConstraintDescription: can contain only ASCII characters.
+  DesiredCapacity:
+    Description: Number of instances to launch in the ASG.
+    Type: Number
+    Default: '2'
+  MaxCapacity:
+    Description: Maximum number of instances that can be launched in the ASG.
+    Type: Number
+    Default: '3'
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro 
+    AllowedValues: [t2.micro, t2.small, t2.medium, t2.large, m3.medium, m3.large,
+      m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
+      c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
+      c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
+      r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge]
+    ConstraintDescription: Please choose a valid instance type.
+
+
+Mappings:
+
+  AmazonLinux2Ami:
+    eu-north-1:
+      HVM64: ami-0b7a46b4bd694e8a6
+    ap-south-1:
+      HVM64: ami-0470e33cd681b2476
+    eu-west-3:
+      HVM64: ami-00077e3fed5089981
+    eu-west-2:
+      HVM64: ami-01a6e31ac994bbc09
+    eu-west-1:
+      HVM64: ami-06ce3edf0cff21f07
+    ap-northeast-2:
+      HVM64: ami-01288945bd24ed49a
+    ap-northeast-1:
+      HVM64: ami-0f310fced6141e627
+    sa-east-1:
+      HVM64: ami-003449ffb2605a74c
+    ca-central-1:
+      HVM64: ami-054362537f5132ce2
+    ap-southeast-1:
+      HVM64: ami-0ec225b5e01ccb706
+    ap-southeast-2:
+      HVM64: ami-0970010f37c4f9c8d
+    eu-central-1:
+      HVM64: ami-076431be05aaf8080
+    us-east-1:
+      HVM64: ami-0323c3dd2da7fb37d
+    us-east-2:
+      HVM64: ami-0f7919c33c90f5b58
+    us-west-1:
+      HVM64: ami-06fcc1f0bc2c8943f
+    us-west-2:
+      HVM64: ami-0d6621c01e8c2de2c
+
+
+Resources:
+
+  # Instance profile
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref InstanceRole
+
+  # Instance role
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument: 
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: [ 'sts:AssumeRole']
+      Policies:
+        - 
+          PolicyName: EC2Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+                - 
+                  Effect: 'Allow'
+                  Action: [
+                    's3:*'
+                  ]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
+                  Resource: '*'
+
+
+  # Security group
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ${AppName}-SecurityGroup
+      GroupDescription: EC2 Security Group
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${AppName}-${ParentStack}-VPC
+
+  SshTcpIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SecurityGroup
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId:
+        Fn::ImportValue:
+          !Sub ${AppName}-Bastion-SG
+
+  # Auto scaling group
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Sub ${AppName}-AutoScalingGroup
+      LaunchConfigurationName: !Ref LaunchConfig
+      MaxSize: !Ref MaxCapacity #required
+      MinSize: !Ref DesiredCapacity  #required
+      DesiredCapacity: !Ref DesiredCapacity
+      VPCZoneIdentifier:
+        - Fn::ImportValue: 
+            !Sub ${AppName}-${ParentStack}-Private-Subnet-1
+        - Fn::ImportValue: 
+            !Sub ${AppName}-${ParentStack}-Private-Subnet-2
+      Tags:
+        - Key: Name
+          Value: !Sub ${AppName}-EC2-instance
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref DesiredCapacity
+        Timeout: PT15M
+    UpdatePolicy: 
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT15M # Between updates
+        SuspendProcesses:
+          - HealthCheck
+          - ReplaceUnhealthy
+          - AlarmNotification
+          - AZRebalance
+          - ScheduledActions
+        WaitOnResourceSignals: true
+
+  # Launch configuration
+  LaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      LaunchConfigurationName: !Sub ${AppName}-LaunchConfig
+      AssociatePublicIpAddress: false
+      IamInstanceProfile: !Ref InstanceProfile
+      ImageId: 
+        !FindInMap [ AmazonLinux2Ami, !Ref 'AWS::Region', HVM64 ]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - !Ref SecurityGroup
+      UserData:
+        Fn::Base64: 
+          !Join
+            - "\n"
+            - - '#!/bin/bash -xe'
+              - 'yum install -y aws-cfn-bootstrap'
+              - !Sub '/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfig --region ${AWS::Region}'
+              - !Sub '/opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}'
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          # packages:
+          #   yum:
+          files:
+            '/etc/cfn/cfn-hup.conf':
+              mode: '000400'
+              owner: root
+              group: root
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+          
+            '/etc/cfn/hooks.d/cfn-auto-reloader.conf':
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.EcsInstancelaunchConfig.Metadata.AWS::CloudFormation::Init 
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EcsInstancelaunchConfig --region ${AWS::Region}
+          services: 
+            sysvinit:
+              cfn-hup: 
+                enabled: true
+                ensureRunning: true
+                files: 
+                  - /etc/cfn/cfn-hup.conf
+                  - /etc/cfn/hooks.d/cfn-auto-reloader.conf
+
+# Outputs:
+              

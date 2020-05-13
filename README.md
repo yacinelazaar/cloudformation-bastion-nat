@@ -1,4 +1,15 @@
-### Package
+#About
+
+A cloudformation template that deploys:
+- 2 EC2 instances through an ASG inside private subnets. 
+- A bastion host in a public subnet with an associated EIP.
+- A Nat Gateway
+
+To check: https://github.com/aws-quickstart/quickstart-linux-bastion
+
+> Before ssh'ing to the bastion, make sure the ssh-agent is forwarded and it loads the public key to the privates instance: `ssh-add <public-key-path> && ssh-add -l`
+
+### Package the template
 
 ```
 aws cloudformation package \
@@ -8,7 +19,7 @@ aws cloudformation package \
 --s3-prefix awx
 ```
 
-### Deploy
+### Deploy the template
 
 ```
 aws cloudformation deploy \

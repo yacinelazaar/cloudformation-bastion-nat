@@ -4,25 +4,25 @@ Description: 'Private instances with a bastion and nat gateway
   '
 Parameters:
   AppName:
-    Description: Application name
+    Description: Application name.
     Type: String
   VpcCidr:
-    Description: VPC Cidr that allows the creation of 4 subnets with /27 mask
+    Description: VPC Cidr that allows the creation of 4 subnets with /27 mask.
     Type: String
     MinLength: '9'
     MaxLength: '18'
     Default: 172.31.0.0/16
     AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
-  KeyName:
-    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+  BastionKeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the bastion.
     Type: String
     MinLength: '1'
     MaxLength: '255'
     AllowedPattern: '[\x20-\x7E]*'
     ConstraintDescription: can contain only ASCII characters.
   SshLocation:
-    Description: The IP address range that can be used to SSH to the EC2 instances
+    Description: The IP address range that can be used to SSH to the bastion.
     Type: String
     MinLength: '9'
     MaxLength: '18'
@@ -30,7 +30,7 @@ Parameters:
     AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
   BastionInstanceType:
-    Description: EC2 instance type
+    Description: Bastion instance type.
     Type: String
     Default: t2.micro
     AllowedValues:
@@ -76,7 +76,7 @@ Parameters:
     ConstraintDescription: Quick Start bucket name can include numbers, lowercase
       letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
       (-).
-    Default: aws-scripts
+    Default: aws-shell-scripts
     Description: S3 bucket name for the Quick Start assets. Quick Start bucket name
       can include numbers, lowercase letters, uppercase letters, and hyphens (-).
       It cannot start or end with a hyphen (-).
@@ -91,7 +91,7 @@ Parameters:
     ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
       uppercase letters, hyphens (-), dots (.) and forward slash (/). The prefix should
       end with a forward slash (/).
-    Default: linux-bastion
+    Default: awx-bastion-linux
     Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
       can include numbers, lowercase letters, uppercase letters, hyphens (-), dots
       (.) and forward slash (/) and it should end with a forward slash (/).
@@ -115,6 +115,60 @@ Parameters:
     AllowedValues:
     - 'true'
     - 'false'
+  InstanceType:
+    Description: EC2 instance type.
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+    - t2.micro
+    - t2.small
+    - t2.medium
+    - t2.large
+    - m3.medium
+    - m3.large
+    - m3.xlarge
+    - m3.2xlarge
+    - m4.large
+    - m4.xlarge
+    - m4.2xlarge
+    - m4.4xlarge
+    - m4.10xlarge
+    - c4.large
+    - c4.xlarge
+    - c4.2xlarge
+    - c4.4xlarge
+    - c4.8xlarge
+    - c3.large
+    - c3.xlarge
+    - c3.2xlarge
+    - c3.4xlarge
+    - c3.8xlarge
+    - r3.large
+    - r3.xlarge
+    - r3.2xlarge
+    - r3.4xlarge
+    - r3.8xlarge
+    - i2.xlarge
+    - i2.2xlarge
+    - i2.4xlarge
+    - i2.8xlarge
+    ConstraintDescription: Please choose a valid instance type.
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances.
+    Type: String
+    MinLength: '1'
+    MaxLength: '255'
+    AllowedPattern: '[\x20-\x7E]*'
+    ConstraintDescription: can contain only ASCII characters.
+  DesiredCapacity:
+    Description: Number of instances to launch.
+    Type: Number
+    Default: '2'
+  MaxCapacity:
+    Description: Maximum number of instances that can be launched in the auto-scaling
+      group.
+    Type: Number
+    Default: '3'
 Resources:
   VpcStack:
     Type: AWS::CloudFormation::Stack
@@ -130,7 +184,7 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: ${AppName}-VPC-Stack
-      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/9681bf999e7f28f5b079c2d928ae5ebc.template
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/7ee152afd6375b6d49ca2745283da557.template
       TimeoutInMinutes: 3
   BastionStack:
     Type: AWS::CloudFormation::Stack
@@ -142,7 +196,7 @@ Resources:
         AppName:
           Ref: AppName
         KeyName:
-          Ref: KeyName
+          Ref: BastionKeyName
         SshLocation:
           Ref: SshLocation
         BastionInstanceType:
@@ -165,8 +219,8 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: ${AppName}-Bastion-Host-Stack
-      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/e991a518655760fd45e330b2a2d8c0fd.template
-      TimeoutInMinutes: 30
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/a2af9746e4501827edc0b0c58c95058c.template
+      TimeoutInMinutes: 7
   NatGatewayStack:
     Type: AWS::CloudFormation::Stack
     DependsOn:
@@ -184,3 +238,28 @@ Resources:
           Fn::Sub: ${AppName}-Nat-Gateway-Stack
       TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/3c742f4f4b9bed19175e60a533cb7e0c.template
       TimeoutInMinutes: 3
+  AsgStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+    - BastionStack
+    - NatGatewayStack
+    Properties:
+      Parameters:
+        ParentStack:
+          Ref: AWS::StackName
+        AppName:
+          Ref: AppName
+        KeyName:
+          Ref: KeyName
+        DesiredCapacity:
+          Ref: DesiredCapacity
+        MaxCapacity:
+          Ref: MaxCapacity
+        InstanceType:
+          Ref: InstanceType
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AppName}-Asg-Stack
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/5df3a27526c1c9ed02eacfb09a857afd.template
+      TimeoutInMinutes: 300

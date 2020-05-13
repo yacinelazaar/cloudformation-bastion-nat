@@ -128,7 +128,7 @@ Resources:
   BastionSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: BastionSecurityGroup
+      GroupName: !Sub ${AppName}-BastionSecurityGroup
       GroupDescription: Bastion host security group
       VpcId: 
         Fn::ImportValue:
@@ -163,7 +163,7 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Count: 1
-        Timeout: PT25M
+        Timeout: PT5M
     Metadata:
       # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-authentication.html#aws-resource-authentication-examples
       # Use the AWS::CloudFormation::Authentication resource to specify authentication credentials for files or sources that you specify with the AWS::CloudFormation::Init resource.
@@ -184,9 +184,12 @@ Resources:
               authentication: S3AccessCreds # important
           commands:
             b-bootstrap:
-              cwd: '/tmp/'
+              env:
+                REGION: !Sub ${AWS::Region} 
+                URL_SUFFIX: !Sub ${AWS::URLSuffix}
+              cwd: /tmp/
               command: !Sub |
-                "REGION=${AWS::Region} URL_SUFFIX=${AWS::URLSuffix} ./bastion_bootstrap.sh --tcp-forwarding ${EnableTCPForwarding} --x11-forwarding ${EnableX11Forwarding}"
+                ./bastion_bootstrap.sh --tcp-forwarding ${EnableTCPForwarding} --x11-forwarding ${EnableX11Forwarding}
     Properties:
       KeyName: !Ref KeyName
       ImageId: !FindInMap [ AmazonLinux2Ami, !Ref 'AWS::Region', HVM64 ]
@@ -235,14 +238,13 @@ Resources:
             cd /quickstart-linux-utilities;
             source quickstart-cfn-tools.source;
             qs_update-os || qs_err;
-            #qs_bootstrap_pip || qs_err " pip bootstrap failed ";
+            qs_bootstrap_pip || qs_err " pip bootstrap failed ";
             qs_aws-cfn-bootstrap || qs_err " cfn bootstrap failed ";
 
             EIP_LIST="${ElasticIp}"
             CLOUDWATCHGROUP=${BastionMainLogGroup}
-            cfn-init -v --stack '${AWS::StackName}' --resource BastionHost --region ${AWS::Region}
-            #cfn-init -v --stack '${AWS::StackName}' --resource BastionHost --region ${AWS::Region} || cfn_fail
-            #[ $(qs_status) == 0 ] && cfn_success || cfn_fail
+            cfn-init -v --stack '${AWS::StackName}' --resource BastionHost --region ${AWS::Region} || cfn_fail
+            [ $(qs_status) == 0 ] && cfn_success || cfn_fail
       Tags:
         - Key: Name
           Value: !Sub ${AppName}-Bastion
@@ -320,4 +322,9 @@ Resources:
         - !Ref BastionHostRole
 
 
-# Outputs:
+Outputs:
+  BastionSecurityGroup:
+    Description: Bastion host's security group
+    Value: !Ref BastionSecurityGroup
+    Export: 
+      Name: !Sub ${AppName}-Bastion-SG

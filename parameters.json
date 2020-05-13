@@ -4,15 +4,15 @@
 		"ParameterValue": "AWX"
 	},
     {
-		"ParameterKey": "KeyName",
-		"ParameterValue": "AWS-Instances"
+		"ParameterKey": "BastionKeyName",
+		"ParameterValue": "Bastion-Instance"
 	},
     {
 		"ParameterKey": "VpcCidr",
 		"ParameterValue": "172.31.0.0/16"
 	},
 	{
-		"ParameterKey": "SSHLocation",
+		"ParameterKey": "SshLocation",
 		"ParameterValue": "0.0.0.0/0"
 	},
     {
@@ -46,5 +46,21 @@
     {
 		"ParameterKey": "EnableX11Forwarding",
 		"ParameterValue": "true"
+    },
+    {
+		"ParameterKey": "KeyName",
+		"ParameterValue": "AWS-Instances"
+    },
+    {
+		"ParameterKey": "DesiredCapacity",
+		"ParameterValue": "2"
+    },
+    {
+		"ParameterKey": "MaxCapacity",
+		"ParameterValue": "2"
+    },
+    {
+		"ParameterKey": "InstanceType",
+		"ParameterValue": "t2.micro"
 	}
-]   
+]
