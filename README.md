@@ -16,7 +16,7 @@ aws cloudformation package \
 --template-file base.yml \
 --output-template-file packaged-template.yml \
 --s3-bucket yassine-cfn-templates \
---s3-prefix awx
+--s3-prefix bastion-nat
 ```
 
 ### Deploy the template
@@ -24,7 +24,7 @@ aws cloudformation package \
 ```
 aws cloudformation deploy \
 --template-file packaged-template.yml \
---stack-name AWX \
+--stack-name bastion-nat \
 --parameter-overrides $(jq -r '.[] | [.ParameterKey, .ParameterValue] | join("=")' parameters.json) \
---capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+--capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND
 ```

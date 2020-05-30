@@ -1,7 +1,7 @@
 [
     {
 		"ParameterKey": "AppName",
-		"ParameterValue": "AWX"
+		"ParameterValue": "Apache"
 	},
     {
 		"ParameterKey": "BastionKeyName",
@@ -33,7 +33,7 @@
 	},
     {
 		"ParameterKey": "S3KeyPrefix",
-		"ParameterValue": "awx-bastion-linux"
+		"ParameterValue": "aws-bastion-linux"
 	},
     {
 		"ParameterKey": "EnvironmentVariables",

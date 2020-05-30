@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'Private instances with a bastion and nat gateway
+Description: '2 private instances with a bastion and nat gateway
 
   '
 Parameters:
@@ -91,7 +91,7 @@ Parameters:
     ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
       uppercase letters, hyphens (-), dots (.) and forward slash (/). The prefix should
       end with a forward slash (/).
-    Default: awx-bastion-linux
+    Default: aws-bastion-linux
     Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
       can include numbers, lowercase letters, uppercase letters, hyphens (-), dots
       (.) and forward slash (/) and it should end with a forward slash (/).
@@ -184,7 +184,7 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: ${AppName}-VPC-Stack
-      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/7ee152afd6375b6d49ca2745283da557.template
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/bastion-nat/7ee152afd6375b6d49ca2745283da557.template
       TimeoutInMinutes: 3
   BastionStack:
     Type: AWS::CloudFormation::Stack
@@ -219,8 +219,8 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: ${AppName}-Bastion-Host-Stack
-      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/a2af9746e4501827edc0b0c58c95058c.template
-      TimeoutInMinutes: 7
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/bastion-nat/a2af9746e4501827edc0b0c58c95058c.template
+      TimeoutInMinutes: 30
   NatGatewayStack:
     Type: AWS::CloudFormation::Stack
     DependsOn:
@@ -236,7 +236,7 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: ${AppName}-Nat-Gateway-Stack
-      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/3c742f4f4b9bed19175e60a533cb7e0c.template
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/bastion-nat/3c742f4f4b9bed19175e60a533cb7e0c.template
       TimeoutInMinutes: 3
   AsgStack:
     Type: AWS::CloudFormation::Stack
@@ -261,5 +261,5 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: ${AppName}-Asg-Stack
-      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/awx/5df3a27526c1c9ed02eacfb09a857afd.template
+      TemplateURL: https://s3.amazonaws.com/yassine-cfn-templates/bastion-nat/10cead8aebfec17b75d909808e011ab6.template
       TimeoutInMinutes: 300

@@ -148,6 +148,9 @@ Resources:
         - Key: Name
           Value: !Sub ${AppName}-EC2-instance
           PropagateAtLaunch: true
+        - Key: Env
+          Value: !Sub ${AppName}-Production
+          PropagateAtLaunch: true
     CreationPolicy:
       ResourceSignal:
         Count: !Ref DesiredCapacity

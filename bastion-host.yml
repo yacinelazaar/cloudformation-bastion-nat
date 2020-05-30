@@ -84,7 +84,6 @@ Parameters:
       - 'true'
       - 'false'
   
-
 Mappings:
 
   AmazonLinux2Ami:
@@ -120,7 +119,6 @@ Mappings:
       HVM64: ami-06fcc1f0bc2c8943f
     us-west-2:
       HVM64: ami-0d6621c01e8c2de2c
-
 
 Resources:
   
